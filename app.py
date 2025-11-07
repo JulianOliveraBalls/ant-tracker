@@ -199,9 +199,6 @@ def load_and_process_data(folder_path):
         st.session_state.cuartil_superior = cuartil_superior # Guardar para referencia
         df_processed['AltaActividad'] = (df_processed['total_cargadas'] > cuartil_superior).astype(int)
 
-        # Rellenar nulos en columnas de movimiento
-        cols_mov_existentes = [c for c in COLS_MOVIMIENTO if c in df_processed.columns]
-        df_processed[cols_mov_existentes] = df_processed[cols_mov_existentes].fillna(0)
         
         # Feature Engineering para gráficos Altair
         cols_area = [c for c in ['area_en_cargadas', 'area_en_sin_carga', 'area_sn_cargadas', 'area_sn_sin_carga'] if c in df_processed.columns]
@@ -256,34 +253,6 @@ def get_altair_chart_temp_actividad(df):
     )
     return chart
 
-def get_altair_chart_hora_actividad(df):
-    """Altair Scatter: Hora vs Actividad Total."""
-    if 'hora' not in df.columns or 'total_hormigas' not in df.columns or 'fecha_hora_sensor' not in df.columns:
-        return None
-
-    df_plot = df[(df['hora'] >= 0) & (df['hora'] <= 23) & (df['total_hormigas'] >= 0)]
-    
-    chart = (
-        alt.Chart(df_plot)
-        .mark_circle(size=80, opacity=0.55, color='#10b981', stroke='#065f46', strokeWidth=0.6)
-        .encode(
-            x=alt.X('hora:Q', title='Hora del día', scale=alt.Scale(domain=[0, 23])),
-            y=alt.Y('total_hormigas:Q', title='Total de hormigas (entrada + salida)'),
-            tooltip=[
-                alt.Tooltip('fecha_hora_sensor:T', title='Fecha y hora'),
-                alt.Tooltip('hora:Q', title='Hora del día'),
-                alt.Tooltip('total_hormigas:Q', title='Hormigas totales', format=",.0f")
-            ]
-        )
-        .properties(
-            title={
-                "text": "Actividad de Hormigas según Hora del Día",
-                "subtitle": "Cada punto representa una observación individual"
-            }
-        )
-        .interactive()
-    )
-    return chart
 
 def get_altair_heatmap_hora_tamano(df):
     """Altair Heatmap: Actividad por Hora y Tamaño."""
@@ -411,7 +380,8 @@ def get_altair_boxplot_velocidad(df):
             title={
                 "text": "Comparación de Velocidad de Hormigas según Carga",
                 "subtitle": "Distribución de velocidades combinando entrada y salida del nido"
-            }
+            },
+            height=400
         )
     )
     return chart_vel
@@ -849,11 +819,10 @@ elif pagina == "Exploración de Datos (EDA)":
             "Selecciona un gráfico (Altair):",
             [
                 "Scatter: Temperatura vs. Actividad Total",
-                "Scatter: Hora del Día vs. Actividad Total",
-                "Boxplot: Velocidad por Tipo de Carga",
+                "Heatmap: Actividad por Temperatura y Tamaño Corporal",
                 "Scatter: Temperatura vs. Tamaño Corporal",
                 "Heatmap: Actividad por Hora y Tamaño Corporal",
-                "Heatmap: Actividad por Temperatura y Tamaño Corporal"
+                "Boxplot: Velocidad por Tipo de Carga"
             ]
         )
         
@@ -862,8 +831,6 @@ elif pagina == "Exploración de Datos (EDA)":
             chart_altair = None
             if grafico_altair_tipo == "Scatter: Temperatura vs. Actividad Total":
                 chart_altair = get_altair_chart_temp_actividad(df_processed)
-            elif grafico_altair_tipo == "Scatter: Hora del Día vs. Actividad Total":
-                chart_altair = get_altair_chart_hora_actividad(df_processed)
             elif grafico_altair_tipo == "Boxplot: Velocidad por Tipo de Carga":
                 chart_altair = get_altair_boxplot_velocidad(df_processed)
             elif grafico_altair_tipo == "Scatter: Temperatura vs. Tamaño Corporal":
@@ -873,7 +840,6 @@ elif pagina == "Exploración de Datos (EDA)":
             elif grafico_altair_tipo == "Heatmap: Actividad por Temperatura y Tamaño Corporal":
                 chart_altair = get_altair_heatmap_temp_tamano(df_processed)
 
-            # FIX 2: Centrar el gráfico usando columnas
             col_chart1, col_chart2, col_chart3 = st.columns([0.1, 0.8, 0.1]) # 10% 80% 10%
             
             with col_chart2:
@@ -915,166 +881,75 @@ elif pagina == "Modelo Predictivo (ML)":
             - **Umbral de 'Alta Actividad':** > {umbral_str} hormigas cargadas/minuto.
             """)
 
-            tab1, tab2, tab3 = st.tabs([
-                "🧪 Probar el Modelo (Live)",
-                "📊 Métricas de Rendimiento",
-                "🌳 Importancia de Features"
-            ])
+            st.subheader("Prueba de Predicción en Tiempo Real")
+            st.markdown("Ingresa las condiciones ambientales para predecir la actividad en el minuto siguiente.")
 
-            # --- Pestaña 1: Probar el Modelo ---
-            with tab1:
-                st.subheader("Prueba de Predicción en Tiempo Real")
-                st.markdown("Ingresa las condiciones ambientales para predecir la actividad en el minuto siguiente.")
-                
-                # Seleccionar el mejor modelo (basado en F1)
-                modelo_seleccionado_nombre = max(metricas, key=lambda k: metricas[k]['f1'])
-                pipeline_prediccion = pipelines[modelo_seleccionado_nombre]
-                
-                st.success(f"Modelo seleccionado para predicción: **{modelo_seleccionado_nombre}** (Mejor F1-Score)")
+            # Seleccionar el mejor modelo (basado en F1)
+            modelo_seleccionado_nombre = max(metricas, key=lambda k: metricas[k]['f1'])
+            pipeline_prediccion = pipelines[modelo_seleccionado_nombre]
 
-                with st.form("prediction_form"):
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        # Sliders basados en los rangos del DataFrame
-                        temp_min = float(df_processed['temp_media'].min())
-                        temp_max = float(df_processed['temp_media'].max())
-                        temp_val = float(df_processed['temp_media'].mean())
-                        input_temp = st.slider("🌡️ Temperatura Media (°C)", temp_min, temp_max, temp_val)
-                        
-                        hum_min = float(df_processed['hum_rel_media'].min())
-                        hum_max = float(df_processed['hum_rel_media'].max())
-                        hum_val = float(df_processed['hum_rel_media'].mean())
-                        input_hum = st.slider("💧 Humedad Relativa (%)", hum_min, hum_max, hum_val)
-                    
-                    with col2:
-                        rad_min = float(df_processed['rad_solar_media'].min())
-                        rad_max = float(df_processed['rad_solar_media'].max())
-                        rad_val = float(df_processed['rad_solar_media'].mean())
-                        input_rad = st.slider("☀️ Radiación Solar (W/m²)", rad_min, rad_max, rad_val)
+            st.success(f"Modelo seleccionado para predicción: **{modelo_seleccionado_nombre}** (Mejor F1-Score)")
 
-                        # Precipitación suele ser 0, usar number input
-                        input_precip = st.number_input("🌧️ Precipitación Total (mm)", min_value=0.0, max_value=50.0, value=0.0, step=0.1)
+            with st.form("prediction_form"):
+                col1, col2 = st.columns(2)
 
-                    submitted = st.form_submit_button("Predecir Actividad")
+                with col1:
+                    # Sliders basados en los rangos del DataFrame
+                    temp_min = float(df_processed['temp_media'].min())
+                    temp_max = float(df_processed['temp_media'].max())
+                    temp_val = float(df_processed['temp_media'].mean())
+                    input_temp = st.slider("🌡️ Temperatura Media (°C)", temp_min, temp_max, temp_val)
 
-                if submitted:
-                    # Crear DataFrame para predicción
-                    input_data = pd.DataFrame({
-                        'temp_media': [input_temp],
-                        'rad_solar_media': [input_rad],
-                        'hum_rel_media': [input_hum],
-                        'precip_total': [input_precip]
-                    })
-                    
-                    # Añadir columnas dummy que el preprocesador espera (aunque las elimine)
-                    for col in df_processed.columns:
-                         if col not in input_data.columns:
-                            input_data[col] = 0 # Valor placeholder
-                    
-                    # Predecir
-                    try:
-                        prediccion = pipeline_prediccion.predict(input_data)[0]
-                        probabilidades = pipeline_prediccion.predict_proba(input_data)[0]
-                        
-                        prob_baja = probabilidades[0]
-                        prob_alta = probabilidades[1]
+                    hum_min = float(df_processed['hum_rel_media'].min())
+                    hum_max = float(df_processed['hum_rel_media'].max())
+                    hum_val = float(df_processed['hum_rel_media'].mean())
+                    input_hum = st.slider("💧 Humedad Relativa (%)", hum_min, hum_max, hum_val)
 
-                        st.markdown("---")
-                        st.subheader("Resultado de la Predicción:")
-                        
-                        if prediccion == 1:
-                            st.metric("Nivel de Actividad", "🐜 ALTA", f"{prob_alta*100:.1f}% de confianza")
-                            st.warning("Se espera un alto flujo de hormigas cargadas.")
-                        else:
-                            st.metric("Nivel de Actividad", "📉 BAJA", f"{prob_baja*100:.1f}% de confianza")
-                            st.info("Se espera un flujo normal o bajo de hormigas.")
+                with col2:
+                    rad_min = float(df_processed['rad_solar_media'].min())
+                    rad_max = float(df_processed['rad_solar_media'].max())
+                    rad_val = float(df_processed['rad_solar_media'].mean())
+                    input_rad = st.slider("☀️ Radiación Solar (W/m²)", rad_min, rad_max, rad_val)
 
-                    except Exception as e:
-                        st.error(f"Error durante la predicción: {e}")
-                        st.dataframe(input_data) # Mostrar qué datos causaron el error
+                    # Precipitación suele ser 0, usar number input
+                    input_precip = st.number_input("🌧️ Precipitación Total (mm)", min_value=0.0, max_value=50.0,
+                                                   value=0.0, step=0.1)
 
-            # --- Pestaña 2: Métricas de Rendimiento ---
-            with tab2:
-                st.subheader("Rendimiento de Modelos (Datos de Test)")
-                
-                modelo_a_ver = st.selectbox("Selecciona un modelo para ver sus métricas:", metricas.keys())
-                
-                if modelo_a_ver:
-                    metricas_modelo = metricas[modelo_a_ver]
-                    
-                    # FIX: Acceder al f1-score de forma segura (aunque 'labels' debería garantizarlo)
-                    f1_clase_1 = 0.0
-                    if '1' in metricas_modelo['report_df'].index:
-                        f1_clase_1 = metricas_modelo['report_df'].loc['1', 'f1-score']
-                    
-                    st.metric(f"F1-Score (Clase 1: Alta Actividad)", f"{f1_clase_1:.3f}")
-                    
-                    st.markdown("#### Reporte de Clasificación")
-                    # FIX 1: Añadir round(3) por si es un error de renderizado
-                    st.dataframe(metricas_modelo['report_df'].round(3))
-                    
-                    st.markdown("#### Matriz de Confusión")
-                    # FIX: Mostrar CM como tabla/dataframe en lugar de gráfico
-                    st.text("0: Baja Actividad, 1: Alta Actividad")
-                    cm_df = pd.DataFrame(
-                        metricas_modelo['cm'],
-                        index=[f"Verdadero {i}" for i in [0, 1]],
-                        columns=[f"Predicción {i}" for i in [0, 1]]
-                    )
-                    st.dataframe(cm_df)
+                submitted = st.form_submit_button("Predecir Actividad")
 
-            # --- Pestaña 3: Importancia de Features ---
-            with tab3:
-                st.subheader("Importancia de las Características del Modelo")
-                st.markdown("""
-                ¿Qué variables ambientales son más importantes para las predicciones del modelo?
-                - **RandomForest:** Muestra la "impureza" (Gini).
-                - **LogisticRegression:** Muestra el "coeficiente" (magnitud del impacto).
-                - **SVM (RBF):** Muestra la "Importancia por Permutación" (cuánto cae el F1-Score si se "rompe" la variable).
-                
-                **Nota:** Un impacto negativo (rojo) significa que la variable reduce la probabilidad de "Alta Actividad".
-                """)
-                
-                modelo_imp = st.selectbox("Selecciona un modelo para ver la importancia de features:", pipelines.keys())
-                
-                if modelo_imp:
-                    # Requerimos X_test, y_test (solo disponibles si se entrenó)
-                    if 'ml_info' in st.session_state:
-                        # Recargar datos de test (no se almacenan en caché de recursos)
-                        df_ml = load_and_process_data(DATA_FOLDER)
-                        y_ml = df_ml['AltaActividad'].shift(-1)
-                        X_ml = df_ml.copy()
-                        X_ml = X_ml.iloc[2:-1].reset_index(drop=True)
-                        y_ml = y_ml.iloc[2:-1].reset_index(drop=True)
-                        test_mask = X_ml['dia_str'] == st.session_state.ml_info['dia_test']
-                        X_test_imp, y_test_imp = X_ml[test_mask], y_ml[test_mask]
+            if submitted:
+                # Crear DataFrame para predicción
+                input_data = pd.DataFrame({
+                    'temp_media': [input_temp],
+                    'rad_solar_media': [input_rad],
+                    'hum_rel_media': [input_hum],
+                    'precip_total': [input_precip]
+                })
 
-                        df_importancia = get_feature_importance(pipelines[modelo_imp], X_test_imp, y_test_imp)
-                        
-                        # FIX 3: Mejorar el gráfico de importancia
-                        
-                        # Añadir color para positivo/negativo
-                        df_importancia['Color'] = df_importancia['Importancia'].apply(lambda x: 'Positivo' if x >= 0 else 'Negativo')
-                        
-                        chart_imp = alt.Chart(df_importancia).mark_bar().encode(
-                            # Ordenar por el valor absoluto
-                            x=alt.X('Importancia:Q', title="Impacto en el Modelo"),
-                            y=alt.Y('Feature:N', sort=alt.SortField("Importancia_Abs", op="max", order="descending")),
-                            # Colorear barras basado en positivo/negativo
-                            color=alt.Color('Color:N', 
-                                            scale=alt.Scale(domain=['Positivo', 'Negativo'], 
-                                                            range=['#10b981', '#f43f5e']),
-                                            legend=alt.Legend(title="Impacto")
-                                           ),
-                            tooltip=['Feature', 'Importancia']
-                        ).properties(
-                            title=f"Importancia de Features para {modelo_imp}"
-                        )
-                        
-                        # FIX 2: Centrar el gráfico
-                        col_imp1, col_imp2, col_imp3 = st.columns([0.1, 0.8, 0.1])
-                        with col_imp2:
-                            st.altair_chart(chart_imp, use_container_width=True)
+                # Añadir columnas dummy que el preprocesador espera (aunque las elimine)
+                for col in df_processed.columns:
+                    if col not in input_data.columns:
+                        input_data[col] = 0  # Valor placeholder
+
+                # Predecir
+                try:
+                    prediccion = pipeline_prediccion.predict(input_data)[0]
+                    probabilidades = pipeline_prediccion.predict_proba(input_data)[0]
+
+                    prob_baja = probabilidades[0]
+                    prob_alta = probabilidades[1]
+
+                    st.markdown("---")
+                    st.subheader("Resultado de la Predicción:")
+
+                    if prediccion == 1:
+                        st.metric("Nivel de Actividad", "🐜 ALTA", f"{prob_alta * 100:.1f}% de confianza")
+                        st.warning("Se espera un alto flujo de hormigas cargadas.")
                     else:
-                        st.warning("No se pueden calcular las importancias. Re-ejecutando...")
+                        st.metric("Nivel de Actividad", "📉 BAJA", f"{prob_baja * 100:.1f}% de confianza")
+                        st.info("Se espera un flujo normal o bajo de hormigas.")
+
+                except Exception as e:
+                    st.error(f"Error durante la predicción: {e}")
+                    st.dataframe(input_data)
+
