@@ -4,8 +4,8 @@ import numpy as np
 import os
 import datetime
 import re
-import matplotlib.pyplot as plt
-import seaborn as sns
+# import matplotlib.pyplot as plt (Eliminado)
+# import seaborn as sns (Eliminado)
 import altair as alt
 import warnings
 from io import BytesIO
@@ -16,7 +16,8 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.metrics import classification_report, confusion_matrix, f1_score, ConfusionMatrixDisplay
+from sklearn.metrics import classification_report, confusion_matrix, f1_score
+# from sklearn.metrics import ConfusionMatrixDisplay (Eliminado)
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.inspection import permutation_importance
 
@@ -219,177 +220,9 @@ def load_and_process_data(folder_path):
 
 # --- Funciones de Gráficos (Adaptadas para usar nombres de columna nuevos) ---
 
-def plot_totales_simple(df):
-    """Gráfico de líneas: Total Entrando vs Saliendo."""
-    if 'total_entrando' not in df.columns or 'total_saliendo' not in df.columns:
-        st.warning("No se pueden generar gráficos de totales. Faltan columnas 'total_entrando' o 'total_saliendo'.")
-        return None
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.plot(df['hora_inicio'], df['total_entrando'], label='Entrando', color='blue')
-    ax.plot(df['hora_inicio'], df['total_saliendo'], label='Saliendo', color='red')
-    ax.set_title('Total hormigas por dirección')
-    ax.set_xlabel('Hora')
-    ax.set_ylabel('Cantidad de hormigas')
-    plt.xticks(rotation=45)
-    ax.legend()
-    ax.grid(True)
-    plt.tight_layout()
-    return fig
-
-def plot_cargadas_vs_sin(df):
-    """Gráfico de líneas: Total Cargadas vs Sin Carga."""
-    if 'total_cargadas' not in df.columns or 'total_sin_carga' not in df.columns:
-        st.warning("No se pueden generar gráficos de carga. Faltan columnas 'total_cargadas' o 'total_sin_carga'.")
-        return None
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.plot(df['hora_inicio'], df['total_cargadas'], label='Cargadas', color='green')
-    ax.plot(df['hora_inicio'], df['total_sin_carga'], label='Sin carga', color='orange')
-    ax.set_title('Total hormigas cargadas vs sin carga')
-    ax.set_xlabel('Hora')
-    ax.set_ylabel('Cantidad de hormigas')
-    plt.xticks(rotation=45)
-    ax.legend()
-    ax.grid(True)
-    plt.tight_layout()
-    return fig
-
-def plot_entrando_saliendo_cargadas(df):
-    """Gráfico de líneas: Entrando Cargadas vs Saliendo Cargadas."""
-    if 'en_cargadas' not in df.columns or 'sn_cargadas' not in df.columns:
-        st.warning("No se pueden generar gráficos de carga/dirección. Faltan columnas 'en_cargadas' o 'sn_cargadas'.")
-        return None
-        
-    fig, ax = plt.subplots(figsize=(12, 6))
-    ax.plot(df['hora_inicio'], df['en_cargadas'], label='Entrando Cargadas', color='blue')
-    ax.plot(df['hora_inicio'], df['sn_cargadas'], label='Saliendo Cargadas', color='red')
-    ax.set_title('Hormigas cargadas - Entrando vs Saliendo')
-    ax.set_xlabel('Hora')
-    ax.set_ylabel('Cantidad de hormigas')
-    plt.xticks(rotation=45)
-    ax.legend()
-    ax.grid(True)
-    plt.tight_layout()
-    return fig
-
-def plot_correlacion_temperatura(df):
-    """Scatter plots: Temperatura vs Actividad (Total, Cargadas, Sin Carga)."""
-    if 'temp_media' not in df.columns:
-        st.warning("No se puede graficar correlación de temperatura. Falta 'temp_media'.")
-        return None
-
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(21, 5))
-
-    # Gráfico 1: Total de hormigas
-    ax1.scatter(df['temp_media'], df['total_hormigas'], color='purple', alpha=0.6)
-    ax1.plot(df['temp_media'], df['total_hormigas'], color='purple', alpha=0.3)
-    ax1.set_xlabel('Temperatura promedio [°C]')
-    ax1.set_ylabel('Total de hormigas (todas)')
-    ax1.set_title('Temperatura vs Total de hormigas (todas)')
-    ax1.grid(True)
-
-    # Gráfico 2: Solo cargadas
-    ax2.scatter(df['temp_media'], df['total_cargadas'], color='orange', alpha=0.6)
-    ax2.plot(df['temp_media'], df['total_cargadas'], color='orange', alpha=0.3)
-    ax2.set_xlabel('Temperatura promedio [°C]')
-    ax2.set_ylabel('Total de hormigas cargadas')
-    ax2.set_title('Temperatura vs Total de hormigas cargadas')
-    ax2.grid(True)
-
-    # Gráfico 3: Solo sin carga
-    ax3.scatter(df['temp_media'], df['total_sin_carga'], color='blue', alpha=0.6)
-    ax3.plot(df['temp_media'], df['total_sin_carga'], color='blue', alpha=0.3)
-    ax3.set_xlabel('Temperatura promedio [°C]')
-    ax3.set_ylabel('Total de hormigas sin carga')
-    ax3.set_title('Temperatura vs Total de hormigas sin carga')
-    ax3.grid(True)
-
-    plt.tight_layout()
-    return fig
-
-def plot_area_vs_velocidad(df):
-    """Scatter plots: Área vs Velocidad (Cargadas, Sin Carga)."""
-    
-    # Calcular áreas y velocidades promedio (asegurando que las columnas existan)
-    cols_area_cargadas = [c for c in ['area_en_cargadas', 'area_sn_cargadas'] if c in df.columns]
-    cols_area_sin_carga = [c for c in ['area_en_sin_carga', 'area_sn_sin_carga'] if c in df.columns]
-    cols_vel_cargadas = [c for c in ['vel_en_cargadas', 'vel_sn_cargadas'] if c in df.columns]
-    cols_vel_sin_carga = [c for c in ['vel_en_sin_carga', 'vel_sn_sin_carga'] if c in df.columns]
-    
-    if not all([cols_area_cargadas, cols_area_sin_carga, cols_vel_cargadas, cols_vel_sin_carga]):
-        st.warning("No se pueden generar gráficos de área/velocidad. Faltan columnas.")
-        return None
-
-    df['area_cargadas'] = df[cols_area_cargadas].mean(axis=1, skipna=True)
-    df['area_sin_carga'] = df[cols_area_sin_carga].mean(axis=1, skipna=True)
-    df['vel_cargadas'] = df[cols_vel_cargadas].mean(axis=1, skipna=True)
-    df['vel_sin_carga'] = df[cols_vel_sin_carga].mean(axis=1, skipna=True)
-
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 5))
-
-    # Gráfico 1: Área vs velocidad - Cargadas
-    ax1.scatter(df['area_cargadas'], df['vel_cargadas'], color='orange', alpha=0.6)
-    ax1.plot(df['area_cargadas'], df['vel_cargadas'], color='orange', alpha=0.3)
-    ax1.set_xlabel('Área promedio [mm²] (Cargadas)')
-    ax1.set_ylabel('Velocidad promedio [mm/s] (Cargadas)')
-    ax1.set_title('Área vs Velocidad - Hormigas cargadas')
-    ax1.grid(True)
-
-    # Gráfico 2: Área vs velocidad - Sin carga
-    ax2.scatter(df['area_sin_carga'], df['vel_sin_carga'], color='blue', alpha=0.6)
-    ax2.plot(df['area_sin_carga'], df['vel_sin_carga'], color='blue', alpha=0.3)
-    ax2.set_xlabel('Área promedio [mm²] (Sin carga)')
-    ax2.set_ylabel('Velocidad promedio [mm/s] (Sin carga)')
-    ax2.set_title('Área vs Velocidad - Hormigas sin carga')
-    ax2.grid(True)
-
-    plt.tight_layout()
-    return fig
-
-def plot_heatmap_tamaño_hora(df):
-    """Heatmaps: Actividad por Tamaño y Hora (Entrando, Saliendo, Total)."""
-    
-    # Crear 'Tamaño_EN_Cargadas' (como en el notebook original)
-    # Esta es una suposición, ajusta la lógica si 'Tamaño_EN_Cargadas' se crea de otra manera
-    if 'area_en_cargadas' in df.columns:
-        df['Tamaño_EN_Cargadas'] = pd.qcut(df['area_en_cargadas'], 3, labels=['Pequeñas', 'Medianas', 'Grandes'], duplicates='drop')
-    else:
-        st.warning("No se puede generar heatmap. Falta 'area_en_cargadas' para definir 'Tamaño_EN_Cargadas'.")
-        return None
-
-    # Agrupar por tamaño y hora
-    risk_EN = df.groupby(['Tamaño_EN_Cargadas', 'hora'], observed=True)['en_cargadas'].sum().reset_index()
-    risk_SN = df.groupby(['Tamaño_EN_Cargadas', 'hora'], observed=True)['sn_cargadas'].sum().reset_index()
-    
-    risk_Total = df.groupby(['Tamaño_EN_Cargadas', 'hora'], observed=True)[
-        ['en_cargadas', 'sn_cargadas']
-    ].sum().reset_index()
-    risk_Total['Total'] = risk_Total['en_cargadas'] + risk_Total['sn_cargadas']
-
-    # Pivots para heatmaps
-    pivot_EN = risk_EN.pivot(index='Tamaño_EN_Cargadas', columns='hora', values='en_cargadas')
-    pivot_SN = risk_SN.pivot(index='Tamaño_EN_Cargadas', columns='hora', values='sn_cargadas')
-    pivot_Total = risk_Total.pivot(index='Tamaño_EN_Cargadas', columns='hora', values='Total')
-
-    # Graficar
-    fig, axes = plt.subplots(1, 3, figsize=(18, 4), sharey=True)
-
-    sns.heatmap(pivot_EN, annot=True, fmt=".0f", cmap="YlGnBu", ax=axes[0])
-    axes[0].set_title("Hormigas entrando")
-
-    sns.heatmap(pivot_SN, annot=True, fmt=".0f", cmap="YlOrBr", ax=axes[1])
-    axes[1].set_title("Hormigas saliendo")
-
-    sns.heatmap(pivot_Total, annot=True, fmt=".0f", cmap="YlOrRd", ax=axes[2])
-    axes[2].set_title("Total (entrando + saliendo)")
-
-    for ax in axes:
-        ax.set_xlabel("Hora del día")
-        ax.set_ylabel("Tamaño de hormigas")
-
-    plt.tight_layout()
-    return fig
+# (Todas las funciones de Matplotlib/Seaborn han sido eliminadas:
+# plot_totales_simple, plot_cargadas_vs_sin, plot_entrando_saliendo_cargadas,
+# plot_correlacion_temperatura, plot_area_vs_velocidad, plot_heatmap_tamaño_hora)
 
 
 # --- Funciones de Gráficos (Altair) ---
@@ -414,8 +247,10 @@ def get_altair_chart_temp_actividad(df):
             ]
         )
         .properties(
-            title="Actividad de Hormigas según Temperatura Media",
-            subtitle="Cada punto representa una observación individual"
+            title={
+                "text": "Actividad de Hormigas según Temperatura Media",
+                "subtitle": "Cada punto representa una observación individual"
+            }
         )
         .interactive()
     )
@@ -441,8 +276,10 @@ def get_altair_chart_hora_actividad(df):
             ]
         )
         .properties(
-            title="Actividad de Hormigas según Hora del Día",
-            subtitle="Cada punto representa una observación individual"
+            title={
+                "text": "Actividad de Hormigas según Hora del Día",
+                "subtitle": "Cada punto representa una observación individual"
+            }
         )
         .interactive()
     )
@@ -476,8 +313,10 @@ def get_altair_heatmap_hora_tamano(df):
             ]
         )
         .properties(
-            title="Mapa de Calor de Actividad Total de Hormigas por Hora",
-            subtitle="Suma de entradas y salidas agrupado por hora y tamaño corporal"
+            title={
+                "text": "Mapa de Calor de Actividad Total de Hormigas por Hora",
+                "subtitle": "Suma de entradas y salidas agrupado por hora y tamaño corporal"
+            }
         )
     )
     return chart
@@ -521,8 +360,10 @@ def get_altair_heatmap_temp_tamano(df):
             ]
         )
         .properties(
-            title="Mapa de Calor de Actividad Total de Hormigas según Temperatura",
-            subtitle="Suma de entradas y salidas agrupado por temperatura y tamaño corporal"
+            title={
+                "text": "Mapa de Calor de Actividad Total de Hormigas según Temperatura",
+                "subtitle": "Suma de entradas y salidas agrupado por temperatura y tamaño corporal"
+            }
         )
     )
     return chart_temp
@@ -567,8 +408,10 @@ def get_altair_boxplot_velocidad(df):
             ]
         )
         .properties(
-            title="Comparación de Velocidad de Hormigas según Carga",
-            subtitle="Distribución de velocidades combinando entrada y salida del nido"
+            title={
+                "text": "Comparación de Velocidad de Hormigas según Carga",
+                "subtitle": "Distribución de velocidades combinando entrada y salida del nido"
+            }
         )
     )
     return chart_vel
@@ -599,7 +442,9 @@ def get_altair_scatter_temp_tamano(df):
             ]
         )
         .properties(
-            title="Relación entre Temperatura y Tamaño Corporal"
+            title={
+                "text": "Relación entre Temperatura y Tamaño Corporal"
+            }
         )
         .interactive()
     )
@@ -692,8 +537,12 @@ def train_models(df):
         pipeline_final.fit(X_train, y_train)
         preds = pipeline_final.predict(X_test)
         
-        report_dict = classification_report(y_test, preds, output_dict=True, zero_division=0)
-        cm = confusion_matrix(y_test, preds)
+        # FIX: Añadido labels=[0, 1] para asegurar que ambas clases estén en el reporte
+        report_dict = classification_report(
+            y_test, preds, labels=[0, 1], output_dict=True, zero_division=0
+        )
+        # FIX: Añadir labels=[0, 1] aquí también para forzar la matriz 2x2
+        cm = confusion_matrix(y_test, preds, labels=[0, 1])
         
         resultados_metricas[nombre] = {
             "report_df": pd.DataFrame(report_dict).transpose(),
@@ -743,7 +592,11 @@ def get_feature_importance(pipeline, X_test, y_test):
     df_imp = pd.DataFrame(
         list(importances_data.items()), 
         columns=["Feature", "Importancia"]
-    ).sort_values(by="Importancia", ascending=False)
+    )
+    
+    # Añadir valor absoluto para ordenar
+    df_imp["Importancia_Abs"] = df_imp["Importancia"].abs()
+    df_imp = df_imp.sort_values(by="Importancia_Abs", ascending=False)
     
     return df_imp
 
@@ -755,45 +608,43 @@ def validar_archivo_subido(df):
     Valida un DataFrame subido contra las columnas requeridas y busca nulos.
     """
     errores = []
-    
+
     # 1. Validar columnas
-    # Usamos los nombres largos originales para la validación
-    cols_requeridas_set = set([
-        'hora_inicio', 'temp_media', 'solar radiation dgt_media', 
-        'relative humidity_media', 'precip_total',
-        'total_hormigas_entrando_al_nido_en_cargadas',
-        'total_hormigas_saliendo_del_nido_sn_cargadas'
-    ]) # Simplificado a las más críticas
+    # FIX: Usar la lista completa de 34 columnas que proporcionaste
+    COLUMNAS_VALIDACION_COMPLETAS = set([
+        'hora_inicio', 'hora_fin', 'total_hormigas_entrando_al_nido_en_cargadas',
+        'total_hormigas_entrando_al_nido_en_sin_carga', 'total_hormigas_saliendo_del_nido_sn_cargadas',
+        'total_hormigas_saliendo_del_nido_sn_sin_carga', 'velocidad_promedio_en__cargadas',
+        'velocidad_promedio_en__sin_carga', 'velocidad_promedio_sn__cargadas',
+        'velocidad_promedio_sn__sin_carga', 'rea_mediana_en__cargadas',
+        'rea_mediana_en__sin_carga', 'rea_mediana_sn__cargadas', 'rea_mediana_sn__sin_carga',
+        'largo_mediana_en__cargadas', 'largo_mediana_en__sin_carga',
+        'largo_mediana_sn__cargadas', 'largo_mediana_sn__sin_carga',
+        'ancho_mediana_en__cargadas', 'ancho_mediana_en__sin_carga',
+        'ancho_mediana_sn__cargadas', 'ancho_mediana_sn__sin_carga',
+        'fecha_hora_sensor', 'temp_media', 'temp_max', 'temp_mín',
+        'dew point_media', 'dew point_mín', 'solar radiation dgt_media',
+        'relative humidity_media', 'relative humidity_max', 'relative humidity_mín',
+        'precip_total', 'battery voltage_última'
+    ])
     
-    # Intenta encontrar las columnas requeridas usando el diccionario de renombrado
-    columnas_encontradas = set()
-    for col_larga in cols_requeridas_set:
-        if col_larga in df.columns:
-            columnas_encontradas.add(col_larga)
-        else:
-            # Buscar si existe con otro nombre (ej. del script de ML)
-            for ml_name, std_name in RENAMING_DICT.items():
-                if std_name == col_larga and ml_name in df.columns:
-                    columnas_encontradas.add(col_larga) # La contamos como encontrada
-                    break
+    columnas_en_df = set(df.columns)
     
-    columnas_faltantes = cols_requeridas_set - columnas_encontradas
+    columnas_faltantes = COLUMNAS_VALIDACION_COMPLETAS - columnas_en_df
+    columnas_encontradas = COLUMNAS_VALIDACION_COMPLETAS.intersection(columnas_en_df)
     
     if columnas_faltantes:
-        errores.append(f"Faltan columnas críticas: {', '.join(columnas_faltantes)}")
+        for col in columnas_faltantes:
+            errores.append(f"Falta la columna requerida: {col}")
 
-    # 2. Validar nulos (solo en columnas que sí existen)
-    cols_a_chequear_nulos = list(cols_requeridas_set - columnas_faltantes)
-    
-    # Renombrar temporalmente el df subido para chequear nulos con nombres estándar
-    df_check = df.rename(columns=RENAMING_DICT, errors='ignore')
-
-    nulos = df_check[cols_a_chequear_nulos].isnull().sum()
-    columnas_con_nulos = nulos[nulos > 0]
-    
-    if not columnas_con_nulos.empty:
-        for col, count in columnas_con_nulos.items():
-            errores.append(f"La columna '{col}' tiene {count} valores nulos.")
+    # 2. Validar nulos (solo en columnas que sí existen y se encontraron)
+    if columnas_encontradas:
+        nulos = df[list(columnas_encontradas)].isnull().sum()
+        columnas_con_nulos = nulos[nulos > 0]
+        
+        if not columnas_con_nulos.empty:
+            for col, count in columnas_con_nulos.items():
+                errores.append(f"La columna '{col}' tiene {count} valores nulos.")
             
     return errores
 
@@ -895,9 +746,12 @@ elif pagina == "Cargar Nuevo Archivo":
 
     # Comprobar duplicados
     if nombre_archivo_generado and os.path.exists(DATA_FOLDER):
-        archivos_existentes = os.listdir(DATA_FOLDER)
-        if nombre_archivo_generado in archivos_existentes:
-            st.error(f"**¡Atención!** Un archivo con el nombre `{nombre_archivo_generado}` ya existe en la carpeta `datos/`. No se puede guardar un duplicado.")
+        # FIX: Comprobación más robusta (ignora extensión)
+        nombre_base_generado = os.path.splitext(nombre_archivo_generado)[0]
+        archivos_existentes_base = [os.path.splitext(f)[0] for f in os.listdir(DATA_FOLDER) if f.endswith(('.xlsx', '.xls'))]
+        
+        if nombre_base_generado in archivos_existentes_base:
+            st.error(f"**¡Atención!** Un archivo con la fecha base `{nombre_base_generado}` ya existe en la carpeta `datos/`. No se puede guardar un duplicado.")
             duplicado = True
         else:
             st.success("El nombre de archivo está disponible.")
@@ -924,33 +778,58 @@ elif pagina == "Cargar Nuevo Archivo":
                 errores = validar_archivo_subido(df_subido)
                 
                 if errores:
-                    st.error("El archivo tiene errores y no puede ser guardado:")
+                    st.error("El archivo tiene errores y no puede ser procesado:")
                     for err in errores:
                         st.markdown(f"- {err}")
                 else:
                     st.success(f"**¡Validación Exitosa!** El archivo `{uploaded_file.name}` tiene la estructura correcta.")
-                    st.balloons()
-                    st.markdown(f"""
-                    **Simulación de guardado:**
-                    - Archivo original: `{uploaded_file.name}`
-                    - Se guardaría como: `{nombre_archivo_generado}`
-                    - **Acción Requerida:** Para usar este archivo en la app, súbelo manualmente a la carpeta `datos/` de tu GitHub con el nombre `{nombre_archivo_generado}`.
-                    """)
                     
+                    # Preparar el archivo .xlsx en memoria
+                    output = BytesIO()
                     if uploaded_file.name.endswith('.csv'):
-                        st.info("El archivo es .csv. Se convertiría a .xlsx antes de guardar.")
-                        
-                        # Simular conversión a XLSX (para descarga)
-                        output = BytesIO()
+                        st.info("El archivo .csv se convertirá a .xlsx.")
                         with pd.ExcelWriter(output, engine='openpyxl') as writer:
                             df_subido.to_excel(writer, index=False, sheet_name='Datos')
-                        
+                    else:
+                        # Si ya es xlsx, solo copia los bytes
+                        uploaded_file.seek(0)
+                        output.write(uploaded_file.read())
+
+                    output.seek(0) # Reset buffer
+                    
+                    st.markdown(f"""
+                    **Acción Requerida:** Para usar este archivo en la app, súbelo.
+                    - **Opción 1 (Recomendada):** Descarga el archivo .xlsx y súbelo manualmente a la carpeta `datos/` de tu GitHub.
+                    - **Opción 2 (Temporal):** Haz clic abajo para usar el archivo **solo en esta sesión**.
+                    """)
+
+                    col1, col2 = st.columns(2)
+                    with col1:
                         st.download_button(
-                            label="Descargar como .xlsx (para subir a GitHub)",
+                            label=f"Descargar {nombre_archivo_generado}",
                             data=output.getvalue(),
                             file_name=nombre_archivo_generado,
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
+                    with col2:
+                        if st.button("Usar archivo en esta sesión (Temporal)"):
+                            # Asegurarse de que la carpeta datos existe
+                            os.makedirs(DATA_FOLDER, exist_ok=True)
+                            
+                            file_path = os.path.join(DATA_FOLDER, nombre_archivo_generado)
+                            try:
+                                with open(file_path, "wb") as f:
+                                    f.write(output.getvalue())
+                                
+                                st.success(f"Archivo `{nombre_archivo_generado}` cargado temporalmente.")
+                                st.warning("Este archivo se perderá si la app se reinicia. Súbelo a GitHub para guardarlo permanentemente.")
+                                
+                                # Limpiar la caché de datos y reiniciar
+                                st.cache_data.clear()
+                                st.rerun() # st.experimental_rerun() para versiones antiguas
+                                
+                            except Exception as e:
+                                st.error(f"No se pudo guardar el archivo temporalmente: {e}")
 
 
 # --- Página de Exploración de Datos (EDA) ---
@@ -962,43 +841,7 @@ elif pagina == "Exploración de Datos (EDA)":
     if df_processed.empty:
         st.error("No se pueden mostrar gráficos porque no se cargaron datos.")
     else:
-        st.subheader("Análisis de Dinámica (Matplotlib/Seaborn)")
-        st.markdown("Patrones de movimiento a lo largo del tiempo.")
-        
-        grafico_mpl_tipo = st.selectbox(
-            "Selecciona un gráfico (Matplotlib/Seaborn):",
-            [
-                "Total Entrando vs. Saliendo",
-                "Total Cargadas vs. Sin Carga",
-                "Detalle: Hormigas Cargadas (Entrando vs. Saliendo)",
-                "Correlación: Temperatura vs. Actividad",
-                "Correlación: Área Corporal vs. Velocidad",
-                "Heatmap: Actividad por Tamaño y Hora (Cargadas)"
-            ]
-        )
-        
-        # Generar gráfico Matplotlib seleccionado
-        with st.spinner("Generando gráfico..."):
-            fig_mpl = None
-            if grafico_mpl_tipo == "Total Entrando vs. Saliendo":
-                fig_mpl = plot_totales_simple(df_processed)
-            elif grafico_mpl_tipo == "Total Cargadas vs. Sin Carga":
-                fig_mpl = plot_cargadas_vs_sin(df_processed)
-            elif grafico_mpl_tipo == "Detalle: Hormigas Cargadas (Entrando vs. Saliendo)":
-                fig_mpl = plot_entrando_saliendo_cargadas(df_processed)
-            elif grafico_mpl_tipo == "Correlación: Temperatura vs. Actividad":
-                fig_mpl = plot_correlacion_temperatura(df_processed)
-            elif grafico_mpl_tipo == "Correlación: Área Corporal vs. Velocidad":
-                fig_mpl = plot_area_vs_velocidad(df_processed)
-            elif grafico_mpl_tipo == "Heatmap: Actividad por Tamaño y Hora (Cargadas)":
-                fig_mpl = plot_heatmap_tamaño_hora(df_processed)
-                
-            if fig_mpl:
-                st.pyplot(fig_mpl)
-            else:
-                st.warning("No se pudo generar el gráfico seleccionado. Verifica que las columnas necesarias estén presentes en los datos.")
-
-        st.markdown("---")
+        # (Sección de Matplotlib/Seaborn eliminada)
         st.subheader("Análisis de Distribuciones (Altair)")
         st.markdown("Gráficos interactivos para explorar relaciones entre variables.")
 
@@ -1030,10 +873,15 @@ elif pagina == "Exploración de Datos (EDA)":
             elif grafico_altair_tipo == "Heatmap: Actividad por Temperatura y Tamaño Corporal":
                 chart_altair = get_altair_heatmap_temp_tamano(df_processed)
 
-            if chart_altair:
-                st.altair_chart(chart_altair, use_container_width=True)
-            else:
-                st.warning("No se pudo generar el gráfico seleccionado. Verifica que las columnas necesarias (ej. 'categoria_tamano', 'tamano_promedio') existan.")
+            # FIX 2: Centrar el gráfico usando columnas
+            col_chart1, col_chart2, col_chart3 = st.columns([0.1, 0.8, 0.1]) # 10% 80% 10%
+            
+            with col_chart2:
+                if chart_altair:
+                    # Usar el ancho del contenedor DE LA COLUMNA CENTRAL
+                    st.altair_chart(chart_altair, use_container_width=True)
+                else:
+                    st.warning("No se pudo generar el gráfico seleccionado. Verifica que las columnas necesarias (ej. 'categoria_tamano', 'tamano_promedio') existan.")
 
 
 # --- Página de Modelo Predictivo (ML) ---
@@ -1055,11 +903,16 @@ elif pagina == "Modelo Predictivo (ML)":
             st.error("Falló el entrenamiento del modelo. Revisa los mensajes de error anteriores.")
         else:
             ml_info = st.session_state.get('ml_info', {})
+            
+            # FIX: Formateo condicional para evitar ValueError
+            umbral = st.session_state.get('cuartil_superior', 'N/A')
+            umbral_str = f"{umbral:.1f}" if isinstance(umbral, (int, float)) else str(umbral)
+            
             st.info(f"""
             **Información del Entrenamiento:**
             - **Datos de Entrenamiento:** {ml_info.get('train_samples', 'N/A')} registros.
             - **Datos de Prueba:** {ml_info.get('test_samples', 'N/A')} registros (Día: {ml_info.get('dia_test', 'N/A')}).
-            - **Umbral de 'Alta Actividad':** > {st.session_state.get('cuartil_superior', 'N/A'):.1f} hormigas cargadas/minuto.
+            - **Umbral de 'Alta Actividad':** > {umbral_str} hormigas cargadas/minuto.
             """)
 
             tab1, tab2, tab3 = st.tabs([
@@ -1149,19 +1002,27 @@ elif pagina == "Modelo Predictivo (ML)":
                 
                 if modelo_a_ver:
                     metricas_modelo = metricas[modelo_a_ver]
-                    st.metric(f"F1-Score (Clase 1: Alta Actividad)", f"{metricas_modelo['report_df'].loc['1', 'f1-score']:.3f}")
+                    
+                    # FIX: Acceder al f1-score de forma segura (aunque 'labels' debería garantizarlo)
+                    f1_clase_1 = 0.0
+                    if '1' in metricas_modelo['report_df'].index:
+                        f1_clase_1 = metricas_modelo['report_df'].loc['1', 'f1-score']
+                    
+                    st.metric(f"F1-Score (Clase 1: Alta Actividad)", f"{f1_clase_1:.3f}")
                     
                     st.markdown("#### Reporte de Clasificación")
-                    st.dataframe(metricas_modelo['report_df'])
+                    # FIX 1: Añadir round(3) por si es un error de renderizado
+                    st.dataframe(metricas_modelo['report_df'].round(3))
                     
                     st.markdown("#### Matriz de Confusión")
-                    fig, ax = plt.subplots()
-                    ConfusionMatrixDisplay(
-                        confusion_matrix=metricas_modelo['cm'],
-                        display_labels=["Baja Actividad (0)", "Alta Actividad (1)"]
-                    ).plot(ax=ax, cmap='Blues')
-                    ax.set_title(f"Matriz de Confusión - {modelo_a_ver}")
-                    st.pyplot(fig)
+                    # FIX: Mostrar CM como tabla/dataframe en lugar de gráfico
+                    st.text("0: Baja Actividad, 1: Alta Actividad")
+                    cm_df = pd.DataFrame(
+                        metricas_modelo['cm'],
+                        index=[f"Verdadero {i}" for i in [0, 1]],
+                        columns=[f"Predicción {i}" for i in [0, 1]]
+                    )
+                    st.dataframe(cm_df)
 
             # --- Pestaña 3: Importancia de Features ---
             with tab3:
@@ -1171,6 +1032,8 @@ elif pagina == "Modelo Predictivo (ML)":
                 - **RandomForest:** Muestra la "impureza" (Gini).
                 - **LogisticRegression:** Muestra el "coeficiente" (magnitud del impacto).
                 - **SVM (RBF):** Muestra la "Importancia por Permutación" (cuánto cae el F1-Score si se "rompe" la variable).
+                
+                **Nota:** Un impacto negativo (rojo) significa que la variable reduce la probabilidad de "Alta Actividad".
                 """)
                 
                 modelo_imp = st.selectbox("Selecciona un modelo para ver la importancia de features:", pipelines.keys())
@@ -1189,14 +1052,29 @@ elif pagina == "Modelo Predictivo (ML)":
 
                         df_importancia = get_feature_importance(pipelines[modelo_imp], X_test_imp, y_test_imp)
                         
-                        # Graficar importancia
+                        # FIX 3: Mejorar el gráfico de importancia
+                        
+                        # Añadir color para positivo/negativo
+                        df_importancia['Color'] = df_importancia['Importancia'].apply(lambda x: 'Positivo' if x >= 0 else 'Negativo')
+                        
                         chart_imp = alt.Chart(df_importancia).mark_bar().encode(
-                            x=alt.X('Importancia:Q'),
-                            y=alt.Y('Feature:N', sort='-x'),
+                            # Ordenar por el valor absoluto
+                            x=alt.X('Importancia:Q', title="Impacto en el Modelo"),
+                            y=alt.Y('Feature:N', sort=alt.SortField("Importancia_Abs", op="max", order="descending")),
+                            # Colorear barras basado en positivo/negativo
+                            color=alt.Color('Color:N', 
+                                            scale=alt.Scale(domain=['Positivo', 'Negativo'], 
+                                                            range=['#10b981', '#f43f5e']),
+                                            legend=alt.Legend(title="Impacto")
+                                           ),
                             tooltip=['Feature', 'Importancia']
                         ).properties(
                             title=f"Importancia de Features para {modelo_imp}"
                         )
-                        st.altair_chart(chart_imp, use_container_width=True)
+                        
+                        # FIX 2: Centrar el gráfico
+                        col_imp1, col_imp2, col_imp3 = st.columns([0.1, 0.8, 0.1])
+                        with col_imp2:
+                            st.altair_chart(chart_imp, use_container_width=True)
                     else:
                         st.warning("No se pueden calcular las importancias. Re-ejecutando...")
