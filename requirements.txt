@@ -1,3 +1,9 @@
-streamlit 
-pandas 
-openpyxl 
+streamlit
+pandas
+openpyxl
+scikit-learn
+matplotlib
+seaborn
+altair
+vegafusion
+vl-convert-python

@@ -1,2 +1,11 @@
-# Ant Tracker App 
-Aplicaci�n Streamlit para visualizar el movimiento de las hormigas. 
+Aplicación Streamlit para Análisis de Actividad de HormigasEsta es una aplicación Streamlit diseñada para explorar datos de actividad de hormigas y probar un modelo predictivo de Machine Learning.Estructura del RepositorioPara que esta aplicación funcione correctamente en Streamlit Cloud, tu repositorio de GitHub DEBE tener la siguiente estructura:tu-repositorio/
+│
+├── datos/
+│   ├── 2022-01-04.xlsx  <-- (Tu primer archivo de datos)
+│   ├── 2022-01-05.xlsx  <-- (Tu segundo archivo de datos)
+│   ├── 2022-01-06.xlsx  <-- (etc...)
+│
+├── streamlit_app.py     <-- (El archivo principal de la app)
+├── requirements.txt     <-- (El archivo de dependencias)
+└── README.md            <-- (Este archivo)
+Pasos para el DespliegueCrea un Repositorio en GitHub: Si aún no lo has hecho, crea un nuevo repositorio público en GitHub.Crea la Carpeta datos/: Dentro de tu repositorio, crea una carpeta llamada exactamente datos.Sube tus Archivos de Datos: Sube TODOS tus archivos .xlsx (o .xls) originales a esta carpeta datos/.Sube los Archivos de la App: Sube los archivos streamlit_app.py y requirements.txt al directorio raíz de tu repositorio.Despliega en Streamlit Cloud:Ve a Streamlit Cloud.Haz clic en "New app".Conecta tu cuenta de GitHub y selecciona el repositorio que acabas de crear.Asegúrate de que el "Main file path" sea streamlit_app.py.Haz clic en "Deploy!".Cómo Funciona la Carga de ArchivosLa aplicación leerá automáticamente todos los archivos .xlsx que encuentre en la carpeta datos/ cada vez que se inicie.La sección "Cargar Nuevo Archivo" en la aplicación es solo un VALIDADOR. Te permite comprobar si un archivo nuevo tiene el formato, las columnas y los datos correctos antes de añadirlo.Para añadir permanentemente un nuevo archivo a la aplicación, DEBES:Validarlo usando la app (opcional, pero recomendado).Renombrar tu archivo .xlsx al formato AAAAMMDD-tiempo_final.xlsx (ej. 20241107-tiempo_final.xlsx).Subir ese archivo a la carpeta datos/ en tu repositorio de GitHub.Hacer "Commit" de los cambios. Streamlit Cloud detectará el cambio y reiniciará la aplicación con los nuevos datos.
