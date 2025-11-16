@@ -7,3 +7,5 @@ seaborn
 altair
 vegafusion
 vl-convert-python
+shap
+ipython
