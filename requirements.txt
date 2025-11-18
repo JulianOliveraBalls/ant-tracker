@@ -1,11 +1,10 @@
 streamlit
 pandas
-openpyxl
-scikit-learn
-matplotlib
-seaborn
+numpy
 altair
+scikit-learn
+lime
+matplotlib
+openpyxl
 vegafusion
 vl-convert-python
-shap
-ipython
