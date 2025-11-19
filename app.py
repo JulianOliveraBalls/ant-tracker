@@ -523,7 +523,6 @@ else:
     pagina = st.sidebar.radio("Navegación", ["Inicio", "Exploración de Datos (EDA)", "Modelo Predictivo (ML)"])
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("Proyecto final de análisis de datos.")
 
 # --- Inicio ---
 if pagina == "Inicio":
@@ -533,7 +532,7 @@ if pagina == "Inicio":
     ### Objetivos
     1.  **Explorar Datos:** Visualizar la dinámica histórica de entrada/salida y temperatura.
     2.  **Probar el Modelo:** Interactuar con un modelo de ML para predecir actividad "Alta" o "Baja".
-    3.  **Validar Nuevos Datos:** Cargar y validar nuevos datasets.
+    
     """)
 
     if not df_processed.empty:
